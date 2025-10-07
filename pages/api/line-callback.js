@@ -105,7 +105,7 @@ export default async function handler(req, res) {
     }
 
     // 6️⃣ 導回 Shopify 前台會員頁
-    res.redirect('/collections');
+    res.redirect('/account');
   } catch (error) {
     console.error(error);
     res.status(500).send('Internal Server Error');
