@@ -1,25 +1,27 @@
 import fetch from 'node-fetch';
 
-// 假設你已經在前端登入頁生成並存了 state，例如用 cookie 或 session
-const validateState = (reqState) => {
-  // TODO: 實作你的 state 驗證
-  // 簡單示範：接受任何 state
-  return !!reqState;
+// 驗證 state
+const validateState = (req) => {
+  const reqState = req.query.state;
+  const cookies = req.headers.cookie || '';
+  const match = cookies.match(/line_oauth_state=([^;]+)/);
+  const savedState = match ? match[1] : null;
+  return reqState && savedState && reqState === savedState;
 };
 
 export default async function handler(req, res) {
   try {
-    const { code, state } = req.query;
+    const { code } = req.query;
 
     // 1️⃣ 驗證 state 防止 CSRF
-    if (!validateState(state)) {
+    if (!validateState(req)) {
       return res.status(400).send('Invalid state');
     }
 
     // 2️⃣ 讀取環境變數
     const clientId = process.env.LINE_CHANNEL_ID;
     const clientSecret = process.env.LINE_CHANNEL_SECRET;
-    const redirectUri = `https://${req.headers.host}/api/line-callback`; 
+    const redirectUri = `https://${req.headers.host}/api/line-callback`;
     const shopifyStore = process.env.SHOPIFY_STORE;
     const shopifyApiKey = process.env.SHOPIFY_ADMIN_API_PASSWORD;
 
@@ -52,7 +54,7 @@ export default async function handler(req, res) {
       return res.status(400).send('Failed to fetch LINE profile');
     }
 
-    const email = profile.email || `${profile.userId}@line.fake`; // LINE 沒提供 email 時，用 fake email
+    const email = profile.email || `${profile.userId}@line.fake`;
 
     // 5️⃣ 檢查 Shopify 顧客是否存在
     const searchRes = await fetch(
@@ -103,7 +105,7 @@ export default async function handler(req, res) {
     }
 
     // 6️⃣ 導回 Shopify 前台會員頁
-    res.redirect('/account');
+    res.redirect('/collections');
   } catch (error) {
     console.error(error);
     res.status(500).send('Internal Server Error');
